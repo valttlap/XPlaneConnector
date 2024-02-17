@@ -2,7 +2,7 @@
 
 public class DataRefElement
 {
-    private static object lockElement = new object();
+    private static readonly object lockElement = new();
     private static int current_id = 0;
 
     public int Id { get; set; }

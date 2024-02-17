@@ -5,16 +5,21 @@ using System.Text;
 
 namespace XPlaneConnector;
 
-public class XPlaneConnector : IDisposable
+/// <summary>
+/// Constructor
+/// </summary>
+/// <param name="ip">IP of the machine running X-Plane, default 127.0.0.1 (localhost)</param>
+/// <param name="xplanePort">Port the machine running X-Plane is listening for, default 49000</param>
+public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : IDisposable
 {
     private const int CheckInterval_ms = 1000;
-    private TimeSpan MaxDataRefAge = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan MaxDataRefAge = TimeSpan.FromSeconds(5);
 
-    private CultureInfo EnCulture = new CultureInfo("en-US");
+    private readonly CultureInfo EnCulture = new("en-US");
 
     private UdpClient server;
     private UdpClient client;
-    private IPEndPoint XPlaneEP;
+    private readonly IPEndPoint XPlaneEP = new(IPAddress.Parse(ip), xplanePort);
     private CancellationTokenSource ts;
     private Task serverTask;
     private Task observerTask;
@@ -28,7 +33,7 @@ public class XPlaneConnector : IDisposable
     public delegate void LogHandler(string message);
     public event LogHandler OnLog;
 
-    private List<DataRefElement> DataRefs;
+    private readonly List<DataRefElement> DataRefs = [];
 
     public DateTime LastReceive { get; internal set; }
     public IEnumerable<byte> LastBuffer { get; internal set; }
@@ -36,19 +41,8 @@ public class XPlaneConnector : IDisposable
     {
         get
         {
-            return ((IPEndPoint)client.Client.LocalEndPoint);
+            return (IPEndPoint)client.Client.LocalEndPoint;
         }
-    }
-
-    /// <summary>
-    /// Constructor
-    /// </summary>
-    /// <param name="ip">IP of the machine running X-Plane, default 127.0.0.1 (localhost)</param>
-    /// <param name="xplanePort">Port the machine running X-Plane is listening for, default 49000</param>
-    public XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000)
-    {
-        XPlaneEP = new IPEndPoint(IPAddress.Parse(ip), xplanePort);
-        DataRefs = new List<DataRefElement>();
     }
 
     /// <summary>
@@ -86,8 +80,12 @@ public class XPlaneConnector : IDisposable
             while (!token.IsCancellationRequested)
             {
                 foreach (var dr in DataRefs)
+                {
                     if (dr.Age > MaxDataRefAge)
+                    {
                         RequestDataRef(dr);
+                    }
+                }
 
                 await Task.Delay(CheckInterval_ms).ConfigureAwait(false);
             }
@@ -105,12 +103,14 @@ public class XPlaneConnector : IDisposable
         {
             var localDataRefs = DataRefs.ToArray();
             foreach (var dr in localDataRefs)
+            {
                 Unsubscribe(dr.DataRef);
+            }
 
             if (ts != null)
             {
                 ts.Cancel();
-                Task.WaitAll(new[] { serverTask, observerTask }, timeout);
+                Task.WaitAll([serverTask, observerTask], timeout);
                 ts.Dispose();
                 ts = null;
 
@@ -137,8 +137,12 @@ public class XPlaneConnector : IDisposable
                     pos += 4;
                     var localDataRefs = DataRefs.ToArray();
                     foreach (var dr in localDataRefs)
+                    {
                         if (dr.Update(id, value))
+                        {
                             OnDataRefReceived?.Invoke(dr);
+                        }
+                    }
                 }
                 catch (ArgumentException ex)
                 {
@@ -158,8 +162,7 @@ public class XPlaneConnector : IDisposable
     /// <param name="command">Command to send</param>
     public void SendCommand(XPlaneCommand command)
     {
-        if (command == null)
-            throw new ArgumentNullException(nameof(command));
+        ArgumentNullException.ThrowIfNull(command);
 
         var dg = new XPDatagram();
         dg.Add("CMND");
@@ -188,7 +191,7 @@ public class XPlaneConnector : IDisposable
         return tokenSource;
     }
 
-    public void StopCommand(CancellationTokenSource token)
+    public static void StopCommand(CancellationTokenSource token)
     {
         token.Cancel();
     }
@@ -201,14 +204,17 @@ public class XPlaneConnector : IDisposable
     /// <param name="onchange">Callback invoked every time a change in the value is detected</param>
     public void Subscribe(DataRefElement dataref, int frequency = -1, Action<DataRefElement, float> onchange = null)
     {
-        if (dataref == null)
-            throw new ArgumentNullException(nameof(dataref));
+        ArgumentNullException.ThrowIfNull(dataref);
 
         if (onchange != null)
+        {
             dataref.OnValueChange += (e, v) => { onchange(e, v); };
+        }
 
         if (frequency > 0)
+        {
             dataref.Frequency = frequency;
+        }
 
         DataRefs.Add(dataref);
     }
@@ -226,8 +232,7 @@ public class XPlaneConnector : IDisposable
 
         //Subscribe((DataRefElement)dataref, frequency);
 
-        if (dataref == null)
-            throw new ArgumentNullException(nameof(dataref));
+        ArgumentNullException.ThrowIfNull(dataref);
 
         dataref.OnValueChange += (e, v) => { onchange(e, v); };
 
@@ -246,16 +251,6 @@ public class XPlaneConnector : IDisposable
                 dataref.Update(currentIndex, character);
             });
         }
-    }
-
-    /// <summary>
-    /// Deprecated, this method has no effect
-    /// </summary>
-    /// <param name="dataref"></param>
-    /// <param name="frequency"></param>
-    [Obsolete]
-    private void Subscribe(DataRefElement dataref, int frequency = -1)
-    {
     }
 
     private void RequestDataRef(DataRefElement element)
@@ -306,8 +301,7 @@ public class XPlaneConnector : IDisposable
     /// <param name="value">New value of the DataRef</param>
     public void SetDataRefValue(DataRefElement dataref, float value)
     {
-        if (dataref == null)
-            throw new ArgumentNullException(nameof(dataref));
+        ArgumentNullException.ThrowIfNull(dataref);
 
         SetDataRefValue(dataref.DataRef, value);
     }

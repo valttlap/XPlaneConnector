@@ -2,13 +2,13 @@
 
 public class StringDataRefElement
 {
-    private static readonly object lockElement = new object();
+    private static readonly object lockElement = new();
     public string DataRef { get; set; }
     public int Frequency { get; set; }
     public int StringLenght { get; set; }
     public string Value { get; set; }
     public DateTime LastUpdateTime { get; set; }
-    private TimeSpan MaxAge = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan MaxAge = TimeSpan.FromSeconds(5);
 
     private int CharactersInitialized;
 
@@ -38,12 +38,18 @@ public class StringDataRefElement
             var fireEvent = !IsCompletelyInitialized;
 
             if (!IsCompletelyInitialized)
+            {
+
                 CharactersInitialized++;
+            }
 
             if (character > 0)
             {
                 if (Value.Length <= index)
+                {
                     Value = Value.PadRight(index + 1, ' ');
+                }
+
 
                 var current = Value[index];
                 if (current != character)
