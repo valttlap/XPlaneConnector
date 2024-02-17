@@ -6,12 +6,12 @@ public class XPDatagram
 
     public XPDatagram()
     {
-        Bytes = new List<byte>();
+        Bytes = [];
     }
 
     public byte[] Get()
     {
-        return Bytes.ToArray();
+        return [.. Bytes];
     }
 
     public void Add(byte value)
@@ -58,14 +58,19 @@ public class XPDatagram
     public void Add(string value)
     {
         foreach (var character in value)
+        {
             Bytes.Add((byte)character);
+        }
+
         Bytes.Add(0x00);
     }
 
     public void FillTo(int count, byte filler = 0x00)
     {
         for (var i = Bytes.Count; i < count; i++)
+        {
             Bytes.Add(filler);
+        }
     }
 
     public int Len
