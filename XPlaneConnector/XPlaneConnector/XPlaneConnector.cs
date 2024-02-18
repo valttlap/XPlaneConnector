@@ -33,7 +33,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
     public delegate void LogHandler(string message);
     public event LogHandler OnLog;
 
-    private readonly List<DataRefElement> DataRefs = [];
+    private readonly List<DataRefElement> _dataRefs = [];
 
     public DateTime LastReceive { get; internal set; }
     public IEnumerable<byte> LastBuffer { get; internal set; }
@@ -79,7 +79,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
         {
             while (!token.IsCancellationRequested)
             {
-                foreach (var dr in DataRefs)
+                foreach (var dr in _dataRefs)
                 {
                     if (dr.Age > _maxDataRefAge)
                     {
@@ -101,7 +101,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
     {
         if (_client != null)
         {
-            var localDataRefs = DataRefs.ToArray();
+            var localDataRefs = _dataRefs.ToArray();
             foreach (var dr in localDataRefs)
             {
                 Unsubscribe(dr.DataRef);
@@ -135,7 +135,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
                 {
                     var value = BitConverter.ToSingle(buffer, pos);
                     pos += 4;
-                    var localDataRefs = DataRefs.ToArray();
+                    var localDataRefs = _dataRefs.ToArray();
                     foreach (var dr in localDataRefs)
                     {
                         if (dr.Update(id, value))
@@ -208,7 +208,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
 
         if (onchange != null)
         {
-            dataref.OnValueChange += (e, v) => { onchange(e, v); };
+            dataref.OnValueChange += (e, v) => onchange(e, v);
         }
 
         if (frequency > 0)
@@ -216,7 +216,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
             dataref.Frequency = frequency;
         }
 
-        DataRefs.Add(dataref);
+        _dataRefs.Add(dataref);
     }
 
     /// <summary>
@@ -234,7 +234,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
 
         ArgumentNullException.ThrowIfNull(dataref);
 
-        dataref.OnValueChange += (e, v) => { onchange(e, v); };
+        dataref.OnValueChange += (e, v) => onchange(e, v);
 
         for (var c = 0; c < dataref.StringLenght; c++)
         {
@@ -276,7 +276,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
     /// <param name="dataref">DataRef to unsubscribe to</param>
     public void Unsubscribe(string dataref)
     {
-        var dr_list = DataRefs.Where(d => d.DataRef == dataref).ToArray();
+        var dr_list = _dataRefs.Where(d => d.DataRef == dataref).ToArray();
 
         foreach (var dr in dr_list)
         {
@@ -288,7 +288,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
             dg.FillTo(413);
 
             _client.Send(dg.Get(), dg.Len);
-            DataRefs.Remove(dr);
+            _dataRefs.Remove(dr);
 
             OnLog?.Invoke($"Unsubscribed from {dataref}");
         }
