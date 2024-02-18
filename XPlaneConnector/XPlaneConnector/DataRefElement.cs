@@ -2,8 +2,8 @@
 
 public class DataRefElement
 {
-    private static readonly object lockElement = new();
-    private static int current_id = 0;
+    private static readonly object LockElement = new();
+    private static int s_current_id = 0;
 
     public int Id { get; set; }
     public string DataRef { get; set; }
@@ -19,9 +19,9 @@ public class DataRefElement
 
     public DataRefElement()
     {
-        lock (lockElement)
+        lock (LockElement)
         {
-            Id = ++current_id;
+            Id = ++s_current_id;
         }
         IsInitialized = false;
         LastUpdate = DateTime.MinValue;
