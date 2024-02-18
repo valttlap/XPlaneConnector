@@ -10,13 +10,13 @@ public class StringDataRefElement
     public DateTime LastUpdateTime { get; set; }
     private readonly TimeSpan MaxAge = TimeSpan.FromSeconds(5);
 
-    private int CharactersInitialized;
+    private int _charactersInitialized;
 
     public bool IsCompletelyInitialized
     {
         get
         {
-            return CharactersInitialized >= StringLenght;
+            return _charactersInitialized >= StringLenght;
         }
     }
 
@@ -30,7 +30,7 @@ public class StringDataRefElement
             if ((DateTime.Now - LastUpdateTime) > MaxAge)
             {
                 // The string has changed, this is the first character received of the new string, so we invalidate the previous string
-                CharactersInitialized = 0;
+                _charactersInitialized = 0;
                 Value = "";
             }
             LastUpdateTime = DateTime.Now;
@@ -40,7 +40,7 @@ public class StringDataRefElement
             if (!IsCompletelyInitialized)
             {
 
-                CharactersInitialized++;
+                _charactersInitialized++;
             }
 
             if (character > 0)
@@ -62,14 +62,14 @@ public class StringDataRefElement
             if (IsCompletelyInitialized && fireEvent)
             {
                 OnValueChange?.Invoke(this, Value);
-                CharactersInitialized = 0;
+                _charactersInitialized = 0;
             }
         }
     }
 
     public StringDataRefElement()
     {
-        CharactersInitialized = 0;
+        _charactersInitialized = 0;
         Value = "";
     }
 }

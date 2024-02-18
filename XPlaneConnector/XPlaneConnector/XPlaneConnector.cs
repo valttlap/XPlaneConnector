@@ -13,16 +13,16 @@ namespace XPlaneConnector;
 public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : IDisposable
 {
     private const int CheckInterval_ms = 1000;
-    private readonly TimeSpan MaxDataRefAge = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan _maxDataRefAge = TimeSpan.FromSeconds(5);
 
-    private readonly CultureInfo EnCulture = new("en-US");
+    private readonly CultureInfo _enCulture = new("en-US");
 
-    private UdpClient server;
-    private UdpClient client;
-    private readonly IPEndPoint XPlaneEP = new(IPAddress.Parse(ip), xplanePort);
-    private CancellationTokenSource ts;
-    private Task serverTask;
-    private Task observerTask;
+    private UdpClient _server;
+    private UdpClient _client;
+    private readonly IPEndPoint _xPlaneEP = new(IPAddress.Parse(ip), xplanePort);
+    private CancellationTokenSource _ts;
+    private Task _serverTask;
+    private Task _observerTask;
 
     public delegate void RawReceiveHandler(string raw);
     public event RawReceiveHandler OnRawReceive;
@@ -41,7 +41,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
     {
         get
         {
-            return (IPEndPoint)client.Client.LocalEndPoint;
+            return (IPEndPoint)_client.Client.LocalEndPoint;
         }
     }
 
@@ -50,19 +50,19 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
     /// </summary>
     public void Start()
     {
-        client = new UdpClient();
-        client.Connect(XPlaneEP.Address, XPlaneEP.Port);
+        _client = new UdpClient();
+        _client.Connect(_xPlaneEP.Address, _xPlaneEP.Port);
 
-        server = new UdpClient(LocalEP);
+        _server = new UdpClient(LocalEP);
 
-        ts = new CancellationTokenSource();
-        var token = ts.Token;
+        _ts = new CancellationTokenSource();
+        var token = _ts.Token;
 
-        serverTask = Task.Factory.StartNew(async () =>
+        _serverTask = Task.Factory.StartNew(async () =>
         {
             while (!token.IsCancellationRequested)
             {
-                var response = await server.ReceiveAsync().ConfigureAwait(false);
+                var response = await _server.ReceiveAsync().ConfigureAwait(false);
                 var raw = Encoding.UTF8.GetString(response.Buffer);
                 LastReceive = DateTime.Now;
                 LastBuffer = response.Buffer;
@@ -72,16 +72,16 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
             }
 
             OnLog?.Invoke("Stopping server");
-            server.Close();
+            _server.Close();
         }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
-        observerTask = Task.Factory.StartNew(async () =>
+        _observerTask = Task.Factory.StartNew(async () =>
         {
             while (!token.IsCancellationRequested)
             {
                 foreach (var dr in DataRefs)
                 {
-                    if (dr.Age > MaxDataRefAge)
+                    if (dr.Age > _maxDataRefAge)
                     {
                         RequestDataRef(dr);
                     }
@@ -99,7 +99,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
     /// <param name="timeout"></param>
     public void Stop(int timeout = 5000)
     {
-        if (client != null)
+        if (_client != null)
         {
             var localDataRefs = DataRefs.ToArray();
             foreach (var dr in localDataRefs)
@@ -107,14 +107,14 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
                 Unsubscribe(dr.DataRef);
             }
 
-            if (ts != null)
+            if (_ts != null)
             {
-                ts.Cancel();
-                Task.WaitAll([serverTask, observerTask], timeout);
-                ts.Dispose();
-                ts = null;
+                _ts.Cancel();
+                Task.WaitAll([_serverTask, _observerTask], timeout);
+                _ts.Dispose();
+                _ts = null;
 
-                client.Close();
+                _client.Close();
             }
         }
     }
@@ -168,7 +168,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
         dg.Add("CMND");
         dg.Add(command.Command);
 
-        client.Send(dg.Get(), dg.Len);
+        _client.Send(dg.Get(), dg.Len);
     }
 
     /// <summary>
@@ -255,7 +255,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
 
     private void RequestDataRef(DataRefElement element)
     {
-        if (client != null)
+        if (_client != null)
         {
             var dg = new XPDatagram();
             dg.Add("RREF");
@@ -264,7 +264,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
             dg.Add(element.DataRef);
             dg.FillTo(413);
 
-            client.Send(dg.Get(), dg.Len);
+            _client.Send(dg.Get(), dg.Len);
 
             OnLog?.Invoke($"Requested {element.DataRef}@{element.Frequency}Hz with Id:{element.Id}");
         }
@@ -287,7 +287,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
             dg.Add(dataref);
             dg.FillTo(413);
 
-            client.Send(dg.Get(), dg.Len);
+            _client.Send(dg.Get(), dg.Len);
             DataRefs.Remove(dr);
 
             OnLog?.Invoke($"Unsubscribed from {dataref}");
@@ -319,7 +319,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
         dg.Add(dataref);
         dg.FillTo(509);
 
-        client.Send(dg.Get(), dg.Len);
+        _client.Send(dg.Get(), dg.Len);
     }
     /// <summary>
     /// Informs X-Plane to change the value of the DataRef
@@ -334,7 +334,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
         dg.Add(dataref);
         dg.FillTo(509);
 
-        client.Send(dg.Get(), dg.Len);
+        _client.Send(dg.Get(), dg.Len);
     }
 
     /// <summary>
@@ -345,7 +345,7 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
         var dg = new XPDatagram();
         dg.Add("QUIT");
 
-        client.Send(dg.Get(), dg.Len);
+        _client.Send(dg.Get(), dg.Len);
     }
 
     /// <summary>
@@ -357,9 +357,9 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
         var dg = new XPDatagram();
         dg.Add("FAIL");
 
-        dg.Add(system.ToString(EnCulture));
+        dg.Add(system.ToString(_enCulture));
 
-        client.Send(dg.Get(), dg.Len);
+        _client.Send(dg.Get(), dg.Len);
     }
 
     /// <summary>
@@ -371,16 +371,16 @@ public class XPlaneConnector(string ip = "127.0.0.1", int xplanePort = 49000) : 
         var dg = new XPDatagram();
         dg.Add("RECO");
 
-        dg.Add(system.ToString(EnCulture));
+        dg.Add(system.ToString(_enCulture));
 
-        client.Send(dg.Get(), dg.Len);
+        _client.Send(dg.Get(), dg.Len);
     }
 
     protected virtual void Dispose(bool a)
     {
-        server?.Dispose();
-        client?.Dispose();
-        ts?.Dispose();
+        _server?.Dispose();
+        _client?.Dispose();
+        _ts?.Dispose();
     }
 
     public void Dispose()
