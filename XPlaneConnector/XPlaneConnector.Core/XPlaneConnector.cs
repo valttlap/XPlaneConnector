@@ -24,6 +24,8 @@ public class Connector(string ip = "127.0.0.1", int xplanePort = 49000) : IDispo
     private Task _serverTask;
     private Task _observerTask;
 
+    public event Action<Exception> ServerFailed;
+
     public delegate void RawReceiveHandler(string raw);
     public event RawReceiveHandler OnRawReceive;
 
@@ -62,18 +64,34 @@ public class Connector(string ip = "127.0.0.1", int xplanePort = 49000) : IDispo
         {
             while (!token.IsCancellationRequested)
             {
-                var response = await _server.ReceiveAsync().ConfigureAwait(false);
-                var raw = Encoding.UTF8.GetString(response.Buffer);
-                LastReceive = DateTime.Now;
-                LastBuffer = response.Buffer;
+                try
+                {
+                    var response = await _server.ReceiveAsync().ConfigureAwait(false);
+                    var raw = Encoding.UTF8.GetString(response.Buffer);
+                    LastReceive = DateTime.Now;
+                    LastBuffer = response.Buffer;
 
-                OnRawReceive?.Invoke(raw);
-                ParseResponse(response.Buffer);
+                    OnRawReceive?.Invoke(raw);
+                    ParseResponse(response.Buffer);
+                }
+                catch (System.Net.Sockets.SocketException)
+                {
+                    throw;
+                }
             }
 
             OnLog?.Invoke("Stopping server");
             _server.Close();
         }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+        _serverTask.ContinueWith(t =>
+        {
+            if (t.Exception != null)
+            {
+                OnLog?.Invoke(t.Exception.Message);
+                ServerFailed?.Invoke(t.Exception.GetBaseException());
+            }
+        }, TaskContinuationOptions.OnlyOnFaulted);
 
         _observerTask = Task.Factory.StartNew(async () =>
         {
