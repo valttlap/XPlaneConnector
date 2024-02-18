@@ -1,4 +1,6 @@
-﻿namespace XPlaneConnector.DataRefs;
+﻿using XPlaneConnector.Core;
+
+namespace XPlaneConnector.Model;
 
 public sealed class Commands
 {

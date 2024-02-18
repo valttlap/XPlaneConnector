@@ -1,4 +1,4 @@
-﻿namespace XPlaneConnector;
+﻿namespace XPlaneConnector.Core;
 
 public sealed class XPlaneCommand(string command, string description)
 {
