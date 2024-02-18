@@ -1,4 +1,4 @@
-﻿namespace XPlaneConnector;
+﻿namespace XPlaneConnector.Core;
 
 public class StringDataRefElement
 {

@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XPlaneConnector", "XPlaneConnector\XPlaneConnector.csproj", "{F6622177-701A-4624-8CFE-67533CED4A30}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XPlaneConnector", "XPlaneConnector.Core\XPlaneConnector.Core.csproj", "{F6622177-701A-4624-8CFE-67533CED4A30}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XPlaneConnector.DataRefs", "XPlaneConnector.DataRefs\XPlaneConnector.DataRefs.csproj", "{2E848989-4FD1-42F2-BE19-3561C02B966E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XPlaneConnector.DataRefs", "XPlaneConnector.Model\XPlaneConnector.Model.csproj", "{2E848989-4FD1-42F2-BE19-3561C02B966E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
