@@ -74,24 +74,16 @@ public class Connector(string ip = "127.0.0.1", int xplanePort = 49000) : IDispo
                     OnRawReceive?.Invoke(raw);
                     ParseResponse(response.Buffer);
                 }
-                catch (System.Net.Sockets.SocketException)
+                catch (SocketException ex)
                 {
-                    throw;
+                    OnLog?.Invoke("SocketException caught in server task: " + ex.Message);
+                    ServerFailed?.Invoke(ex);
                 }
             }
 
             OnLog?.Invoke("Stopping server");
             _server.Close();
         }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-
-        _serverTask.ContinueWith(t =>
-        {
-            if (t.Exception != null)
-            {
-                OnLog?.Invoke(t.Exception.Message);
-                ServerFailed?.Invoke(t.Exception.GetBaseException());
-            }
-        }, TaskContinuationOptions.OnlyOnFaulted);
 
         _observerTask = Task.Factory.StartNew(async () =>
         {

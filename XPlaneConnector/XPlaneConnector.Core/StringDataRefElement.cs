@@ -2,13 +2,13 @@
 
 public class StringDataRefElement
 {
-    private static readonly object lockElement = new();
+    private static readonly object LockElement = new();
     public string DataRef { get; set; }
     public int Frequency { get; set; }
     public int StringLenght { get; set; }
     public string Value { get; set; }
     public DateTime LastUpdateTime { get; set; }
-    private readonly TimeSpan MaxAge = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan _maxAge = TimeSpan.FromSeconds(5);
 
     private int _charactersInitialized;
 
@@ -25,9 +25,9 @@ public class StringDataRefElement
 
     public void Update(int index, char character)
     {
-        lock (lockElement)
+        lock (LockElement)
         {
-            if ((DateTime.Now - LastUpdateTime) > MaxAge)
+            if ((DateTime.Now - LastUpdateTime) > _maxAge)
             {
                 // The string has changed, this is the first character received of the new string, so we invalidate the previous string
                 _charactersInitialized = 0;
