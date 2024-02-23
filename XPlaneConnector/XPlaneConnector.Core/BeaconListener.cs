@@ -9,7 +9,12 @@ public class BeaconListener
     private const int BeaconPort = 49707;
     private const string MulticastGroupAddress = "239.255.1.1";
 
-    public static async Task<(IPAddress Address, int Port)> GetXPlaneClientAddressAsync()
+    public BeaconListener()
+    {
+    }
+
+
+    public static async Task<(IPAddress Address, int Port)> GetXPlaneClientAddressAsync(CancellationToken token = default)
     {
         using var client = new UdpClient();
         client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
@@ -19,9 +24,9 @@ public class BeaconListener
         IPAddress multicastAddress = IPAddress.Parse(MulticastGroupAddress);
         client.JoinMulticastGroup(multicastAddress);
 
-        while (true)
+        while (!token.IsCancellationRequested)
         {
-            var result = await client.ReceiveAsync();
+            var result = await client.ReceiveAsync(token);
             byte[] data = result.Buffer;
 
             if (!Encoding.ASCII.GetString(data, 0, 5).Equals("BECN\0")) continue;
@@ -32,5 +37,7 @@ public class BeaconListener
 
             return (result.RemoteEndPoint.Address, port);
         }
+
+        return (IPAddress.None, 0);
     }
 }
